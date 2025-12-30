@@ -14,7 +14,7 @@ public class Player : MonoBehaviour {
         spriteComponent = GetComponentInChildren<SpriteRenderer>().transform;
         flipX = spriteComponent.localScale.x;
 
-        colliderMasks = LayerMask.GetMask("Wall", "Enemy", "NPC");
+        colliderMasks = LayerMask.GetMask("Wall", "Enemy", "NPC", "Floor");
     }
 
     void Update() {
@@ -43,7 +43,7 @@ public class Player : MonoBehaviour {
 
                 // collision check
                 Vector2 colliderSize = Vector2.one * 0.8f;
-                Collider2D collisionHit = Physics2D.OverlapBox(targetPos, colliderSize, 0.0f, LayerMask.GetMask("Wall", "Enemy", "NPC"));
+                Collider2D collisionHit = Physics2D.OverlapBox(targetPos, colliderSize, 0.0f, colliderMasks);
 
                 if (!collisionHit) {
                     StartCoroutine(Movement());
