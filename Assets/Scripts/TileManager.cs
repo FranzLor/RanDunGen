@@ -74,7 +74,8 @@ public class TileManager : MonoBehaviour {
     }
 
     IEnumerator DelayGeneration() {
-        while (FindObjectsOfType<TileSpawner>().Length > 0) {
+        // used to wait for all tile spawners to finish before placing exit doorway
+        while (FindObjectsByType<TileSpawner>(FindObjectsSortMode.None).Length > 0) {
             yield return null;
         }
 
