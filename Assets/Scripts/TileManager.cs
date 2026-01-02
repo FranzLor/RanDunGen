@@ -13,8 +13,12 @@ public class TileManager : MonoBehaviour {
     [SerializeField] public GameObject wallPrefab, floorPrefab, doorwayPrefab;
     [SerializeField] public GameObject tileSpawnerPrefab;
     [SerializeField] public int totalFloorCount = 750;
+    [SerializeField] public GameObject[] spawnRandomObjects;
+
+    [SerializeField, UnityEngine.Range(0, 100)] int randomObjectSpawnChance;
 
     List<Vector3> floorList = new List<Vector3>();
+    LayerMask floorMask, wallMask;
 
     private void Start() {
         RandomWalker();
@@ -80,8 +84,43 @@ public class TileManager : MonoBehaviour {
         }
 
         ExitDoorway();
+
+        // spawns random objects on random floor tiles
+        Vector2 floorSize = Vector2.one * 0.8f;
+        floorMask = LayerMask.GetMask("Floor");
+        wallMask = LayerMask.GetMask("Wall");
+
+        for (int x = (int)(minX - 2); x <= (int)maxX + 2; x++) {
+            for (int y = (int)minY - 2; y <= (int)maxY + 2; y++) {
+                Collider2D hitFloor = Physics2D.OverlapBox(new Vector2(x, y), floorSize, 0, floorMask);
+
+                if (hitFloor) {
+                    // avoids placing objects on the exit doorway floor
+                    if (!Vector2.Equals(hitFloor.transform.position, floorList[floorList.Count - 1])) {
+
+                        Collider2D hitTop = Physics2D.OverlapBox(new Vector2(x, y + 1), floorSize, 0, wallMask);
+                        Collider2D hitBottom = Physics2D.OverlapBox(new Vector2(x, y - 1), floorSize, 0, wallMask);
+                        Collider2D hitRight = Physics2D.OverlapBox(new Vector2(x + 1, y), floorSize, 0, wallMask);
+                        Collider2D hitLeft = Physics2D.OverlapBox(new Vector2(x - 1, y), floorSize, 0, wallMask);
+
+                        // only places object if there is a wall on one side
+                        if ((hitTop || hitBottom || hitRight || hitLeft) && !(hitTop && hitBottom) && !(hitRight && hitLeft)) {
+                            // random chance to spawn object
+                            int roll = Random.Range(0, 101);
+                            if (roll <= randomObjectSpawnChance) {
+                                int objectIndex = Random.Range(0, spawnRandomObjects.Length);
+                                GameObject gameObjects = Instantiate(spawnRandomObjects[objectIndex], hitFloor.transform.position, Quaternion.identity);
+                                gameObjects.name = spawnRandomObjects[objectIndex].name;
+                                gameObjects.transform.SetParent(this.transform);
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    
+
     void ExitDoorway() {
         // places exit doorway at last floor position
         Vector3 doorPos = floorList[floorList.Count - 1];
