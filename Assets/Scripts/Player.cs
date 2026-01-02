@@ -18,10 +18,13 @@ public class Player : MonoBehaviour {
     }
 
     void Update() {
+        PlayerMovement();
+    }
+
+    void PlayerMovement() {
         // grid-like movement input
         float horizontal = System.Math.Sign(Input.GetAxisRaw("Horizontal"));
         float vertical = System.Math.Sign(Input.GetAxisRaw("Vertical"));
-
 
         // meanwhile with input
         if (Mathf.Abs(horizontal) > 0 || Mathf.Abs(vertical) > 0) {
@@ -46,13 +49,13 @@ public class Player : MonoBehaviour {
                 Collider2D collisionHit = Physics2D.OverlapBox(targetPos, colliderSize, 0.0f, colliderMasks);
 
                 if (!collisionHit) {
-                    StartCoroutine(Movement());
+                    StartCoroutine(Positioning());
                 }
             }
         }
     }
 
-    IEnumerator Movement() {
+    IEnumerator Positioning() {
         isMoving = true;
         // move towards target pos
         while (Vector2.Distance(transform.position, targetPos) > 0.01f) {
