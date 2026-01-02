@@ -13,9 +13,9 @@ TagManager:
   - UI
   - Player
   - Enemy
-  - Wall
   - NPC
-  - 
+  - Wall
+  - Floor
   - 
   - 
   - 
@@ -38,8 +38,17 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Floor
+    uniqueID: 2337249753
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Characters
+    uniqueID: 573349195
+    locked: 0
+  - name: Wall
+    uniqueID: 547729585
     locked: 0
   m_RenderingLayers:
   - Default
