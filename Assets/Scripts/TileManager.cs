@@ -20,6 +20,11 @@ public class TileManager : MonoBehaviour {
     List<Vector3> floorList = new List<Vector3>();
     LayerMask floorMask, wallMask;
 
+    private void Awake() {
+        floorMask = LayerMask.GetMask("Floor");
+        wallMask = LayerMask.GetMask("Wall");
+    }
+
     private void Start() {
         RandomWalker();
     }
@@ -83,12 +88,26 @@ public class TileManager : MonoBehaviour {
             yield return null;
         }
 
-        ExitDoorway();
+        PostGeneration();
+    }
 
+    void PostGeneration() {
+        ExitDoorway();
+        SpawnRandomObjects();
+    }
+
+    void ExitDoorway() {
+        // places exit doorway at last floor position
+        Vector3 doorPos = floorList[floorList.Count - 1];
+
+        GameObject gameObjectDoor = Instantiate(doorwayPrefab,  doorPos, Quaternion.identity);
+        gameObjectDoor.name = doorwayPrefab.name;
+        gameObjectDoor.transform.SetParent(this.transform);
+    }
+
+    void SpawnRandomObjects() {
         // spawns random objects on random floor tiles
         Vector2 floorSize = Vector2.one * 0.8f;
-        floorMask = LayerMask.GetMask("Floor");
-        wallMask = LayerMask.GetMask("Wall");
 
         for (int x = (int)(minX - 2); x <= (int)maxX + 2; x++) {
             for (int y = (int)minY - 2; y <= (int)maxY + 2; y++) {
@@ -119,14 +138,5 @@ public class TileManager : MonoBehaviour {
                 }
             }
         }
-    }
-
-    void ExitDoorway() {
-        // places exit doorway at last floor position
-        Vector3 doorPos = floorList[floorList.Count - 1];
-
-        GameObject gameObjectDoor = Instantiate(doorwayPrefab,  doorPos, Quaternion.identity);
-        gameObjectDoor.name = doorwayPrefab.name;
-        gameObjectDoor.transform.SetParent(this.transform);
     }
 }
