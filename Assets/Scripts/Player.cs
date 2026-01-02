@@ -14,7 +14,7 @@ public class Player : MonoBehaviour {
         spriteComponent = GetComponentInChildren<SpriteRenderer>().transform;
         flipX = spriteComponent.localScale.x;
 
-        colliderMasks = LayerMask.GetMask("Wall", "Enemy", "NPC", "Floor");
+        colliderMasks = LayerMask.GetMask("Wall", "Enemy", "NPC");
     }
 
     void Update() {
