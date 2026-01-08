@@ -6,7 +6,8 @@ using Unity.VectorGraphics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class TileManager : MonoBehaviour {
+public class TileManager : MonoBehaviour
+{
 
     [HideInInspector] public float minX, maxX, minY, maxY;
 
@@ -15,11 +16,12 @@ public class TileManager : MonoBehaviour {
     [SerializeField] public int totalFloorCount = 750;
     [SerializeField] public GameObject[] spawnRandomObjects, spawnRandomEnemies;
 
-    [SerializeField, UnityEngine.Range(0, 100)] int randomObjectSpawnChance ;
+    [SerializeField, UnityEngine.Range(0, 100)] int randomObjectSpawnChance;
     [SerializeField, UnityEngine.Range(0, 100)] int randomEnemySpawnChance;
 
     List<Vector3> floorList = new List<Vector3>();
     LayerMask floorMask, wallMask;
+    Vector2 hitSize;
 
     private void Awake() {
         floorMask = LayerMask.GetMask("Floor");
@@ -27,6 +29,8 @@ public class TileManager : MonoBehaviour {
     }
 
     private void Start() {
+        hitSize = Vector2.one * 0.8f;
+
         RandomWalker();
     }
 
@@ -44,31 +48,8 @@ public class TileManager : MonoBehaviour {
         floorList.Add(currentPos);
 
         while (floorList.Count < totalFloorCount) {
-            switch (Random.Range(1, 5)) {
-                case 1:
-                    currentPos += Vector3.up;
-                    break;
-                case 2:
-                    currentPos += Vector3.down;
-                    break;
-                case 3:
-                    currentPos += Vector3.right;
-                    break;
-                case 4:
-                    currentPos += Vector3.left;
-                    break;
-                default:
-                    break;
-            }
-            // prevents duplicating spawns (stacking)
-            bool floorExists = false;
-            for (int i = 0; i < floorList.Count(); i++) {
-                if (Vector3.Equals(currentPos, floorList[i])) {
-                    floorExists = true;
-                    break;
-                }
-            }
-            if (!floorExists) {
+            currentPos += GetRandomStep();
+            if (!DoesFloorExistAtPos(currentPos)) {
                 floorList.Add(currentPos);
             }
         }
@@ -83,12 +64,36 @@ public class TileManager : MonoBehaviour {
         StartCoroutine(DelayGeneration());
     }
 
+    Vector3 GetRandomStep() {
+        switch (Random.Range(1, 5)) {
+            case 1:
+                return Vector3.up;
+            case 2:
+                return Vector3.right;
+            case 3:
+                return Vector3.down;
+            case 4:
+                return Vector3.left;
+        }
+        // should never reach here but compiler bitches without it
+        return Vector3.zero;
+    }
+
+    bool DoesFloorExistAtPos(Vector3 currentPos) {
+        // prevents duplicating spawns (stacking)            
+        for (int i = 0; i < floorList.Count(); i++) {
+            if (Vector3.Equals(currentPos, floorList[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     IEnumerator DelayGeneration() {
         // used to wait for all tile spawners to finish before placing exit doorway
         while (FindObjectsByType<TileSpawner>(FindObjectsSortMode.None).Length > 0) {
             yield return null;
         }
-
         PostGeneration();
     }
 
@@ -102,27 +107,25 @@ public class TileManager : MonoBehaviour {
         // places exit doorway at last floor position
         Vector3 doorPos = floorList[floorList.Count - 1];
 
-        GameObject gameObjectDoor = Instantiate(doorwayPrefab,  doorPos, Quaternion.identity);
+        GameObject gameObjectDoor = Instantiate(doorwayPrefab, doorPos, Quaternion.identity);
         gameObjectDoor.name = doorwayPrefab.name;
         gameObjectDoor.transform.SetParent(this.transform);
     }
 
     void SpawnRandomObjects() {
         // spawns random objects by walls on random floor tiles
-        Vector2 floorSize = Vector2.one * 0.8f;
-
         for (int x = (int)(minX - 2); x <= (int)maxX + 2; x++) {
             for (int y = (int)minY - 2; y <= (int)maxY + 2; y++) {
-                Collider2D hitFloor = Physics2D.OverlapBox(new Vector2(x, y), floorSize, 0, floorMask);
+                Collider2D hitFloor = Physics2D.OverlapBox(new Vector2(x, y), hitSize, 0, floorMask);
 
                 if (hitFloor) {
                     // avoids placing objects on the exit doorway floor
                     if (!Vector2.Equals(hitFloor.transform.position, floorList[floorList.Count - 1])) {
 
-                        Collider2D hitTop = Physics2D.OverlapBox(new Vector2(x, y + 1), floorSize, 0, wallMask);
-                        Collider2D hitBottom = Physics2D.OverlapBox(new Vector2(x, y - 1), floorSize, 0, wallMask);
-                        Collider2D hitRight = Physics2D.OverlapBox(new Vector2(x + 1, y), floorSize, 0, wallMask);
-                        Collider2D hitLeft = Physics2D.OverlapBox(new Vector2(x - 1, y), floorSize, 0, wallMask);
+                        Collider2D hitTop = Physics2D.OverlapBox(new Vector2(x, y + 1), hitSize, 0, wallMask);
+                        Collider2D hitBottom = Physics2D.OverlapBox(new Vector2(x, y - 1), hitSize, 0, wallMask);
+                        Collider2D hitRight = Physics2D.OverlapBox(new Vector2(x + 1, y), hitSize, 0, wallMask);
+                        Collider2D hitLeft = Physics2D.OverlapBox(new Vector2(x - 1, y), hitSize, 0, wallMask);
 
                         // only places object if there is a wall on one side
                         if ((hitTop || hitBottom || hitRight || hitLeft) && !(hitTop && hitBottom) && !(hitRight && hitLeft)) {
@@ -144,20 +147,18 @@ public class TileManager : MonoBehaviour {
 
     void SpawnRandomEnemies() {
         // spawns random enemies on open random floor tiles
-        Vector2 floorSize = Vector2.one * 0.8f;
-
         for (int x = (int)(minX - 2); x <= (int)maxX + 2; x++) {
             for (int y = (int)minY - 2; y <= (int)maxY + 2; y++) {
-                Collider2D hitFloor = Physics2D.OverlapBox(new Vector2(x, y), floorSize, 0, floorMask);
+                Collider2D hitFloor = Physics2D.OverlapBox(new Vector2(x, y), hitSize, 0, floorMask);
 
                 if (hitFloor) {
                     // avoids placing objects on the exit doorway floor
                     if (!Vector2.Equals(hitFloor.transform.position, floorList[floorList.Count - 1])) {
 
-                        Collider2D hitTop = Physics2D.OverlapBox(new Vector2(x, y + 1), floorSize, 0, wallMask);
-                        Collider2D hitBottom = Physics2D.OverlapBox(new Vector2(x, y - 1), floorSize, 0, wallMask);
-                        Collider2D hitRight = Physics2D.OverlapBox(new Vector2(x + 1, y), floorSize, 0, wallMask);
-                        Collider2D hitLeft = Physics2D.OverlapBox(new Vector2(x - 1, y), floorSize, 0, wallMask);
+                        Collider2D hitTop = Physics2D.OverlapBox(new Vector2(x, y + 1), hitSize, 0, wallMask);
+                        Collider2D hitBottom = Physics2D.OverlapBox(new Vector2(x, y - 1), hitSize, 0, wallMask);
+                        Collider2D hitRight = Physics2D.OverlapBox(new Vector2(x + 1, y), hitSize, 0, wallMask);
+                        Collider2D hitLeft = Physics2D.OverlapBox(new Vector2(x - 1, y), hitSize, 0, wallMask);
 
                         // makes sure there are no walls around the tile
                         if (!hitTop && !hitBottom && !hitLeft && !hitRight) {
@@ -176,4 +177,5 @@ public class TileManager : MonoBehaviour {
             }
         }
     }
+
 }
