@@ -6,6 +6,12 @@ using Unity.VectorGraphics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+
+public enum DungeonTypes {
+    Cave,
+    Rooms
+}
+
 public class TileManager : MonoBehaviour
 {
 
@@ -19,6 +25,8 @@ public class TileManager : MonoBehaviour
     [SerializeField, UnityEngine.Range(0, 100)] int randomObjectSpawnChance;
     [SerializeField, UnityEngine.Range(0, 100)] int randomEnemySpawnChance;
 
+    public DungeonTypes dungeonType;
+
     List<Vector3> floorList = new List<Vector3>();
     LayerMask floorMask, wallMask;
     Vector2 hitSize;
@@ -31,7 +39,17 @@ public class TileManager : MonoBehaviour
     private void Start() {
         hitSize = Vector2.one * 0.8f;
 
-        RandomWalker();
+        switch (dungeonType) {
+            case DungeonTypes.Cave:
+                RandomCaveWalker();
+                break;
+
+            case DungeonTypes.Rooms:
+                RandomRoomWalker();
+                break;
+        }
+
+        
     }
 
     private void Update() {
@@ -41,7 +59,7 @@ public class TileManager : MonoBehaviour
         }
     }
 
-    void RandomWalker() {
+    void RandomCaveWalker() {
         Vector3 currentPos = Vector3.zero;
 
         // gets initial tile spawner at pos 0,0
@@ -54,11 +72,39 @@ public class TileManager : MonoBehaviour
             }
         }
 
-        // spawns tile spawners in new random pos
-        for (int i = 0; i < floorList.Count(); i++) {
-            GameObject spawnTile = Instantiate(tileSpawnerPrefab, floorList[i], Quaternion.identity);
-            spawnTile.name = tileSpawnerPrefab.name;
-            spawnTile.transform.SetParent(this.transform);
+        StartCoroutine(DelayGeneration());
+    }
+
+    void RandomRoomWalker() {
+        Vector3 currentPos = Vector3.zero;
+
+        // gets initial tile spawner at pos 0,0
+        floorList.Add(currentPos);
+
+        // walks in a direction for a set length to create hallways
+        while (floorList.Count < totalFloorCount) {
+            Vector3 walkingDirection = GetRandomStep();
+            int walkingLength = Random.Range(9, 18);
+
+            for (int i = 0; i < walkingLength; i++) {
+                if (!DoesFloorExistAtPos(currentPos + walkingDirection)) {
+                    floorList.Add(currentPos + walkingDirection);
+                }
+                currentPos += walkingDirection;
+            }
+            // adds a room at the end of the hallway
+            int width = Random.Range(1, 5);
+            int height = Random.Range(1, 5);
+
+            for (int w = -width; w <= width; w++) {
+                for (int h = -height; h <= height; h++) {
+                    // skips the center tile since already added
+                    Vector3 offset = new Vector3(w, h, 0);
+                    if (!DoesFloorExistAtPos(currentPos + offset)) {
+                        floorList.Add(currentPos + offset);
+                    }
+                }
+            }
         }
 
         StartCoroutine(DelayGeneration());
@@ -90,10 +136,18 @@ public class TileManager : MonoBehaviour
     }
 
     IEnumerator DelayGeneration() {
+        // spawns tile spawners in new random pos
+        for (int i = 0; i < floorList.Count(); i++) {
+            GameObject spawnTile = Instantiate(tileSpawnerPrefab, floorList[i], Quaternion.identity);
+            spawnTile.name = tileSpawnerPrefab.name;
+            spawnTile.transform.SetParent(this.transform);
+        }
+
         // used to wait for all tile spawners to finish before placing exit doorway
         while (FindObjectsByType<TileSpawner>(FindObjectsSortMode.None).Length > 0) {
             yield return null;
         }
+
         PostGeneration();
     }
 
